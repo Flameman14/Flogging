@@ -3,57 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>우도 플로깅 지원금 앱 (테스트)</title>
+  <title>우도 플로깅 지원금 앱</title>
   <style>
+    /* 기존 스타일 유지 */
     body { font-family: 'Pretendard', sans-serif; margin: 0; background-color: #f4f7f6; display: flex; justify-content: center; height: 100vh; }
     #app-container { width: 100%; max-width: 400px; background: white; height: 100%; display: flex; flex-direction: column; overflow: hidden; position: relative; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     .screen { display: none; flex-direction: column; height: 100%; overflow-y: auto; padding: 20px; box-sizing: border-box; }
     .screen.active { display: flex; }
     h2, h3 { color: #333; margin-top: 0; }
-    
     .input-group { margin-bottom: 15px; }
-    .input-group input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
-    
+    .input-group input[type="email"], .input-group input[type="password"], .input-group input[type="number"], .input-group select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
     .primary-btn { background: #007bff; color: white; border: none; padding: 15px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+    .primary-btn:disabled { background: #9bbff4; cursor: not-allowed; }
     .danger-btn { background: #dc3545; color: white; border: none; padding: 15px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
-    
     .dashboard-header { margin-bottom: 20px; }
     .activity-card { background: #e3f2fd; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
     .activity-card p { margin: 0 0 5px 0; color: #555; font-size: 14px; font-weight: bold; }
     .activity-card h3 { margin: 0; color: #1976d2; font-size: 28px; }
-    
     .stats-container { display: flex; justify-content: space-around; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #a5d8ff; }
     .stat-item { display: flex; flex-direction: column; }
     .stat-label { font-size: 12px; color: #555; margin-bottom: 5px; }
     .stat-value { font-size: 18px; font-weight: bold; color: #1976d2; }
-    
-    /* 커스텀 SVG 지도 및 범례 스타일 */
     .custom-map-wrapper { position: relative; width: 100%; height: 420px; background: #e9f5f9; border-radius: 12px; border: 1px solid #cce5ff; margin-bottom: 20px; overflow: hidden; }
     .map-svg { width: 100%; height: 100%; }
-    
-    /* 지도 좌측 상단 범례 */
     .map-legend { position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 8px; font-size: 11px; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #ccc; }
     .legend-title { font-weight: bold; margin-bottom: 6px; color: #333; }
     .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
-    .legend-item:last-child { margin-bottom: 0; }
     .legend-color { width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
-    
-    /* 장소 버튼 공통 스타일 */
     .map-label { position: absolute; padding: 4px 6px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; transform: translate(-50%, -50%); z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.1); white-space: nowrap; transition: all 0.2s; border: 1px solid transparent; }
-    
-    /* 상태별 색상 (버튼 및 범례) */
     .bg-good { background-color: #28a745; }
     .bg-normal { background-color: #ffc107; color: #333 !important; }
     .bg-danger { background-color: #dc3545; }
-
     .status-good { border-color: #28a745; color: #155724; background-color: #d4edda; }
-    .status-good:hover { background-color: #28a745; color: white; }
     .status-normal { border-color: #ffc107; color: #856404; background-color: #fff3cd; }
-    .status-normal:hover { background-color: #ffc107; color: #333; }
     .status-danger { border-color: #dc3545; color: #721c24; background-color: #f8d7da; }
-    .status-danger:hover { background-color: #dc3545; color: white; }
-
-    /* 장소 상세 모달 스타일 */
     .modal-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
     .modal-overlay.active { display: flex; }
     .modal-content { background: white; padding: 20px; border-radius: 12px; width: 100%; max-height: 90%; overflow-y: auto; box-sizing: border-box; }
@@ -61,166 +44,141 @@
     .modal-header h3 { margin: 0; color: #1976d2; }
     .modal-badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; color: white; }
     .modal-desc { font-size: 13px; color: #444; line-height: 1.5; margin-bottom: 15px; }
-    .modal-stats { display: flex; justify-content: space-between; background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
-    .modal-stats div { text-align: center; width: 48%; font-size: 12px; }
-    .modal-stats strong { display: block; font-size: 18px; color: #333; margin-top: 5px; }
-    .modal-photos { display: flex; gap: 10px; }
-    .modal-photos img { width: 50%; height: 100px; object-fit: cover; border-radius: 8px; background: #eee; border: 1px solid #ddd; }
-    .close-modal-btn { background: #6c757d; color: white; border: none; padding: 10px; border-radius: 8px; width: 100%; font-weight: bold; margin-top: 15px; cursor: pointer; }
-
+    .modal-photos { display: flex; gap: 10px; margin-bottom: 15px; }
+    .modal-photos div { width: 50%; text-align: center; }
+    .modal-photos img { width: 100%; height: 100px; object-fit: cover; border-radius: 8px; background: #eee; border: 1px solid #ccc; }
+    .photo-label { font-size: 11px; color: #555; margin-top: 4px; font-weight: bold; }
+    .close-modal-btn { background: #6c757d; color: white; border: none; padding: 10px; border-radius: 8px; width: 100%; font-weight: bold; margin-top: 10px; cursor: pointer; }
     .info-card { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
     .timer { font-size: 32px; font-weight: bold; color: #007bff; margin: 10px 0; }
-
-    #camera-view-container { flex-grow: 1; background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; position: relative; }
+    #camera-view-container { flex-grow: 1; background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; }
     #camera-feed { width: 100%; height: 100%; object-fit: cover; }
     .step-indicator { display: inline-block; background: #007bff; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-bottom: 10px; }
+    .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px; border: 1px solid #eee; }
+    .checkbox-label { font-size: 13px; color: #333; display: flex; align-items: center; width: 45%; cursor: pointer; }
+    .checkbox-label input { margin-right: 6px; width: 16px; height: 16px; accent-color: #007bff; }
   </style>
 
-  <!-- 파이어베이스 SDK 추가 (버전 8 사용) -->
+  <!-- 파이어베이스 -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
   <div id="app-container">
-    
-    <!-- 1. 로그인 화면 -->
+    <!-- 로그인 화면 -->
     <div id="login-screen" class="screen active">
       <h2 style="margin-top: 50px;">우도 플로깅 시작하기</h2>
-      <p style="color: #666; margin-bottom: 30px;">대학 웹메일(.ac.kr)로 로그인하세요.</p>
       <div class="input-group">
         <input type="email" id="email-input" placeholder="example@univ.ac.kr" value="test@jejunu.ac.kr">
-      </div>
-      <div class="input-group">
-        <input type="password" placeholder="비밀번호" value="1234">
       </div>
       <button type="button" id="login-btn" class="primary-btn">로그인</button>
     </div>
 
-    <!-- 2. 대시보드 화면 -->
+    <!-- 대시보드 화면 -->
     <div id="dashboard-screen" class="screen">
-      <div class="dashboard-header">
-        <h2>반갑습니다! 🌊</h2>
-      </div>
+      <div class="dashboard-header"><h2>반갑습니다! 🌊</h2></div>
       
       <div class="activity-card">
         <p>나의 서포터즈 활동 내역</p>
         <h3 id="activity-count">총 12회</h3>
         <div class="stats-container">
-          <div class="stat-item">
-            <span class="stat-label">누적 활동비</span>
-            <span class="stat-value" id="activity-fee">240,000원</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">수거한 마대</span>
-            <span class="stat-value" id="sack-count">15개</span>
-          </div>
+          <div class="stat-item"><span class="stat-label">누적 활동비</span><span class="stat-value" id="activity-fee">240,000원</span></div>
+          <div class="stat-item"><span class="stat-label">수거한 마대</span><span class="stat-value" id="sack-count">15개</span></div>
         </div>
       </div>
 
-      <h3>우도 지역별 상세 현황</h3>
-      <p style="font-size: 12px; color: #666; margin-top: 0;">장소 이름을 클릭해 상세 정보를 확인하세요.</p>
-      
-      <!-- 커스텀 SVG 지도 -->
-      <div class="custom-map-wrapper">
-        <div class="map-legend">
-          <div class="legend-title">쓰레기 현황</div>
-          <div class="legend-item"><div class="legend-color bg-good"></div>양호</div>
-          <div class="legend-item"><div class="legend-color bg-normal"></div>보통</div>
-          <div class="legend-item"><div class="legend-color bg-danger"></div>위험</div>
-        </div>
+      <div class="input-group">
+        <p style="font-size: 12px; font-weight:bold; color: #555; margin: 0 0 5px 0;">📍 플로깅 진행 장소 선택 (시연용 GPS 대체)</p>
+        <select id="simulated-location">
+          <option value="검멀레해변">검멀레해변</option>
+          <option value="서빈백사">서빈백사</option>
+          <option value="하고수동해수욕장">하고수동해수욕장</option>
+        </select>
+      </div>
 
+      <div class="custom-map-wrapper">
         <svg class="map-svg" viewBox="0 0 380 480" preserveAspectRatio="xMidYMid meet">
           <path d="M 170 30 C 190 20, 210 30, 210 50 C 230 60, 240 80, 220 110 C 210 130, 210 140, 230 140 C 260 130, 280 110, 310 110 C 340 110, 360 130, 340 150 C 320 170, 290 160, 270 170 C 260 180, 260 190, 270 220 C 280 260, 290 320, 270 360 C 280 370, 290 400, 260 420 C 240 440, 200 460, 180 440 C 170 450, 150 470, 130 460 C 110 450, 120 430, 100 420 C 80 410, 70 380, 80 340 C 90 290, 80 240, 70 210 C 50 200, 40 200, 70 180 C 80 160, 90 140, 110 120 C 130 100, 150 70, 170 30 Z" fill="#d4eed1" stroke="#2c3e50" stroke-width="2"/>
         </svg>
-
-        <div class="map-label" data-loc="답다니탑망대" style="left: 48%; top: 12%;" onclick="openLocationModal('답다니탑망대')">답다니탑망대</div>
-        <div class="map-label" data-loc="우도 비양도" style="left: 82%; top: 28%;" onclick="openLocationModal('우도 비양도')">우도 비양도</div>
-        <div class="map-label" data-loc="상고수동해변" style="left: 65%; top: 45%;" onclick="openLocationModal('상고수동해변')">상고수동해변</div>
-        <div class="map-label" data-loc="하고수동해수욕장" style="left: 70%; top: 60%;" onclick="openLocationModal('하고수동해수욕장')">하고수동해수욕장</div>
-        <div class="map-label" data-loc="검멀레해변" style="left: 65%; top: 80%;" onclick="openLocationModal('검멀레해변')">검멀레해변</div>
-        <div class="map-label" data-loc="천진항·톨칸이" style="left: 42%; top: 92%;" onclick="openLocationModal('천진항·톨칸이')">천진항·톨칸이</div>
-        <div class="map-label" data-loc="서천진동해변" style="left: 28%; top: 85%;" onclick="openLocationModal('서천진동해변')">서천진동해변</div>
-        <div class="map-label" data-loc="서빈백사" style="left: 20%; top: 65%;" onclick="openLocationModal('서빈백사')">서빈백사</div>
-        <div class="map-label" data-loc="서쪽 해안도로" style="left: 22%; top: 45%;" onclick="openLocationModal('서쪽 해안도로')">서쪽 해안도로</div>
-        <div class="map-label" data-loc="하우목동항" style="left: 32%; top: 25%;" onclick="openLocationModal('하우목동항')">하우목동항</div>
+        <div class="map-label status-good" data-loc="검멀레해변" style="left: 65%; top: 80%;" onclick="openLocationModal('검멀레해변')">검멀레해변</div>
+        <div class="map-label status-good" data-loc="서빈백사" style="left: 20%; top: 65%;" onclick="openLocationModal('서빈백사')">서빈백사</div>
+        <div class="map-label status-good" data-loc="하고수동해수욕장" style="left: 70%; top: 60%;" onclick="openLocationModal('하고수동해수욕장')">하고수동해수욕장</div>
       </div>
       
       <div style="padding-bottom: 30px;">
-        <button type="button" id="start-plogging-btn" class="primary-btn">선택한 장소 플로깅 시작하기</button>
+        <button type="button" id="start-plogging-btn" class="primary-btn">플로깅 시작하기</button>
       </div>
     </div>
 
-    <!-- 모달 창 (장소 상세 정보) -->
+    <!-- 모달 창 -->
     <div id="location-modal" class="modal-overlay">
       <div class="modal-content">
         <div class="modal-header">
           <h3 id="modal-title">장소 이름</h3>
-          <span id="modal-status-badge" class="modal-badge">상태</span>
-        </div>
-        <p class="modal-desc" id="modal-desc">장소 설명이 이곳에 들어갑니다.</p>
-        
-        <div class="modal-stats">
-          <div>오늘 완료한 인원<strong id="modal-completed">0명</strong></div>
-          <div>현재 활동중인 인원<strong id="modal-active">0명</strong></div>
+          <span id="modal-status-badge" class="modal-badge bg-good">양호</span>
         </div>
         
-        <p style="font-size: 12px; color: #555; margin: 0 0 5px 0; font-weight: bold;">최신 현장 사진 (관리자 / 참여자)</p>
+        <p style="font-size: 12px; color: #555; margin: 0 0 5px 0; font-weight: bold;">실시간 현장 사진</p>
         <div class="modal-photos">
-          <img id="modal-admin-photo" src="https://via.placeholder.com/150/e3f2fd/007bff?text=지킴이+사진" alt="지킴이 사진">
-          <img id="modal-user-photo" src="https://via.placeholder.com/150/e3f2fd/007bff?text=참여자+사진" alt="참여자 사진">
+          <div>
+            <img id="modal-admin-photo" src="https://via.placeholder.com/150/e3f2fd/007bff?text=지킴이사진" alt="지킴이 사진">
+            <div class="photo-label">🌅 아침 점검 사진</div>
+          </div>
+          <div>
+            <img id="modal-user-photo" src="https://via.placeholder.com/150/e3f2fd/007bff?text=참여자사진" alt="참여자 사진">
+            <div class="photo-label">🏃 최신 플로깅 사진</div>
+          </div>
         </div>
-
         <button type="button" class="close-modal-btn" onclick="closeLocationModal()">닫기</button>
       </div>
     </div>
 
-    <!-- 3. 카메라 촬영 화면 -->
+    <!-- 카메라 화면 -->
     <div id="camera-screen" class="screen">
       <h2>사진 촬영 📸</h2>
       <span id="step-badge" class="step-indicator">1/2 단계</span>
       <p id="camera-instruction" style="color: #666; margin-bottom: 15px; font-weight:bold;"></p>
-      
       <div id="camera-view-container">
         <video id="camera-feed" autoplay playsinline></video>
       </div>
-
       <button type="button" id="capture-btn" class="primary-btn">촬영 및 다음으로</button>
       <button type="button" id="cancel-camera-btn" class="danger-btn">취소</button>
     </div>
 
-    <!-- 4. 플로깅 진행 화면 -->
+    <!-- 플로깅 화면 -->
     <div id="plogging-screen" class="screen">
       <h2>플로깅 진행 중 🏃‍♂️</h2>
-      
-      <div class="info-card" style="background: #e3f2fd; border: 1px solid #90caf9;">
-        <p style="margin:0; color:#1976d2; font-size:14px; font-weight:bold;">📍 현재 내 위치</p>
-        <h3 id="current-plogging-loc" style="margin:5px 0 0 0; color:#333;">검멀레해변</h3>
-      </div>
-
       <div class="info-card">
-        <p style="margin:0; color:#555;">진행 시간</p>
+        <h3 id="current-plogging-location">검멀레해변</h3>
         <div class="timer" id="timer-display">00:00</div>
-        <p style="margin:0; color:#28a745; font-size:14px;">정상적으로 기록되고 있습니다.</p>
       </div>
-      
-      <div class="info-card">
-        <p style="margin:0 0 10px 0; font-weight:bold;">진행 내역</p>
-        <p style="margin:0; font-size:14px;">📸 본인 및 위치 사진 촬영 완료</p>
-        <p style="margin:5px 0 0 0; font-size:14px;">📍 GPS 실시간 추적 중...</p>
-      </div>
-
       <div style="flex-grow: 1;"></div>
       <button type="button" id="end-plogging-btn" class="danger-btn">플로깅 종료하기</button>
     </div>
 
+    <!-- 보고서 화면 -->
+    <div id="report-screen" class="screen">
+      <h2>플로깅 결과 보고 📝</h2>
+      <div class="input-group">
+        <p style="margin: 0 0 5px 0; font-weight: bold; color: #333;">수거한 마대자루 개수</p>
+        <input type="number" id="report-sack-count" min="1" value="1">
+      </div>
+      <div class="input-group">
+        <p style="margin: 0 0 5px 0; font-weight: bold; color: #333;">주로 수거한 쓰레기 종류</p>
+        <div class="checkbox-group">
+          <label class="checkbox-label"><input type="checkbox" name="trash-type" value="플라스틱"> 플라스틱</label>
+          <label class="checkbox-label"><input type="checkbox" name="trash-type" value="스티로폼"> 스티로폼</label>
+        </div>
+      </div>
+      <div style="flex-grow: 1;"></div>
+      <button type="button" id="submit-report-btn" class="primary-btn">제출 및 인증 완료</button>
+    </div>
   </div>
 
   <script>
-    // ==========================================
-    // 파이어베이스 설정 영역 (복사한 코드를 여기에 붙여넣으세요)
-    // ==========================================
-   const firebaseConfig = {
+    /* ✅ 본인의 파이어베이스 정보로 꼭 수정하세요! */
+    const firebaseConfig = {
   apiKey: "AIzaSyBir23HnIvMiP7GYXRAKqk0dWtt0hMSgD4",
   authDomain: "flogging-31ab2.firebaseapp.com",
   databaseURL: "https://flogging-31ab2-default-rtdb.firebaseio.com",
@@ -232,289 +190,143 @@
 };
 
     
-    // 파이어베이스 초기화
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    // ==========================================
+
+    let activityCount = 12; let activityFee = 240000; let totalSackCount = 15;
+    let timerInterval = null; let seconds = 0; let cameraStream = null;
+    let currentCameraPhase = ''; let selectedLocation = '';
+    
+    let capturedPhotos = { startSelfie: null, startLocation: null, endSelfie: null, endLocation: null };
 
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
       document.getElementById(screenId).classList.add('active');
     }
 
-    // 장소 로컬 기본 데이터 구조 (이후 Firebase에서 업데이트됨)
-    const locationsData = {
-      '서빈백사': { desc: "천연기념물 제438호 '제주 우도 홍조단괴 해빈'...", completed: 25, active: 4, score: 0, adminPhoto: null, userPhoto: null },
-      '하고수동해수욕장': { desc: "우도 동쪽에 위치한 총길이 약 400m의 해변...", completed: 15, active: 7, score: 0, adminPhoto: null, userPhoto: null },
-      '검멀레해변': { desc: "우도봉 아래 협곡에 있는 폭 100여 미터의 검은 모래 해변...", completed: 9, active: 12, score: 0, adminPhoto: null, userPhoto: null },
-      '천진항·톨칸이': { desc: "우도의 주요 남쪽 관문이자 소의 여물통에 해당하는 곳...", completed: 5, active: 2, score: 0, adminPhoto: null, userPhoto: null },
-      '우도 비양도': { desc: "우도 북동쪽에서 짧은 육교로 연결된 부속 섬...", completed: 30, active: 15, score: 0, adminPhoto: null, userPhoto: null },
-      '답다니탑망대': { desc: "우도 최북단에 현무암 바위로 거대하게 쌓아 올린 돌탑...", completed: 22, active: 3, score: 0, adminPhoto: null, userPhoto: null },
-      '서천진동해변': { desc: "천진항과 서빈백사 사이에 있는 아담한 해변...", completed: 12, active: 1, score: 0, adminPhoto: null, userPhoto: null },
-      '하우목동항': { desc: "우도의 또 다른 주요 항구입니다...", completed: 28, active: 5, score: 0, adminPhoto: null, userPhoto: null },
-      '서쪽 해안도로': { desc: "우도 서안을 따라 시원하게 뻗은 해안길...", completed: 18, active: 6, score: 0, adminPhoto: null, userPhoto: null },
-      '상고수동해변': { desc: "하고수동해수욕장 위쪽에 자리한 맑고 한적한 해변...", completed: 8, active: 2, score: 0, adminPhoto: null, userPhoto: null }
-    };
-
-    let selectedLocation = '검멀레해변'; // 현재 선택/플로깅 중인 장소
-
-    // 상태 색상 결정 로직 (Firebase 서버 점수 우선 반영)
-    function getStatusInfo(locData) {
-      // 만약 서버에서 넘어온 score(쓰레기 점수)가 있다면 점수 기준으로 위험도 산정
-      if (locData.score !== undefined && locData.score !== null) {
-        if (locData.score <= 1) return { text: '양호', bgClass: 'bg-good', labelClass: 'status-good' };
-        if (locData.score <= 3) return { text: '수거 권장', bgClass: 'bg-normal', labelClass: 'status-normal' };
-        return { text: '집중 수거', bgClass: 'bg-danger', labelClass: 'status-danger' };
-      }
-      
-      // 서버 점수가 없으면 기존처럼 인원수로 계산 (테스트용)
-      if (locData.completed >= 20) return { text: '양호', bgClass: 'bg-good', labelClass: 'status-good' };
-      if (locData.completed >= 10) return { text: '보통', bgClass: 'bg-normal', labelClass: 'status-normal' };
-      return { text: '위험', bgClass: 'bg-danger', labelClass: 'status-danger' };
-    }
-
-    function renderMapLabels() {
-      for (const [name, data] of Object.entries(locationsData)) {
-        const el = document.querySelector(`.map-label[data-loc="${name}"]`);
-        if (el) {
-          const info = getStatusInfo(data);
-          el.className = `map-label ${info.labelClass}`;
-        }
-      }
-    }
-    renderMapLabels();
-
-    // Firebase 데이터 실시간 수신 이벤트 (관리자 앱에서 점수/사진 올리면 자동 반영)
+    // 지도 실시간 업데이트
     db.ref('locations').on('value', (snapshot) => {
       const data = snapshot.val();
       if(data) {
         for (const [loc, info] of Object.entries(data)) {
-          if (locationsData[loc]) {
-            if(info.score !== undefined) locationsData[loc].score = info.score;
-            if(info.photo) locationsData[loc].adminPhoto = info.photo;                     // 지킴이 아침 사진
-            if(info.approvedUserPhoto) locationsData[loc].userPhoto = info.approvedUserPhoto; // 승인된 참여자 사진
+          const label = document.querySelector(`.map-label[data-loc="${loc}"]`);
+          if (label) {
+            if (info.score <= 1) label.className = `map-label status-good`;
+            else if (info.score <= 3) label.className = `map-label status-normal`;
+            else label.className = `map-label status-danger`;
           }
-        }
-        
-        renderMapLabels(); // 지도 색상 갱신
-        
-        // 현재 모달이 띄워져 있다면 모달 내용도 즉시 갱신
-        if (document.getElementById('location-modal').classList.contains('active')) {
-          openLocationModal(document.getElementById('modal-title').innerText);
+          
+          if (document.getElementById('location-modal').classList.contains('active')) {
+            if(document.getElementById('modal-title').innerText === loc) {
+              document.getElementById('modal-admin-photo').src = info.adminPhoto || "https://via.placeholder.com/150/e3f2fd/007bff?text=지킴이사진";
+              document.getElementById('modal-user-photo').src = info.approvedUserPhoto || "https://via.placeholder.com/150/e3f2fd/007bff?text=참여자사진";
+            }
+          }
         }
       }
     });
 
     function openLocationModal(locationName) {
-      selectedLocation = locationName; // 클릭한 곳을 현재 플로깅할 장소로 선택
-      const data = locationsData[locationName];
       document.getElementById('modal-title').innerText = locationName;
-      document.getElementById('modal-desc').innerText = data.desc;
-      document.getElementById('modal-completed').innerText = data.completed + '명';
-      document.getElementById('modal-active').innerText = data.active + '명';
-      
-      const info = getStatusInfo(data);
-      const badge = document.getElementById('modal-status-badge');
-      badge.innerText = info.text;
-      badge.className = `modal-badge ${info.bgClass}`;
-      
-      // 사진 업데이트 (서버 사진이 없으면 기본 이미지)
-      document.getElementById('modal-admin-photo').src = data.adminPhoto ? data.adminPhoto : "https://via.placeholder.com/150/e3f2fd/007bff?text=지킴이+대기중";
-      document.getElementById('modal-user-photo').src = data.userPhoto ? data.userPhoto : "https://via.placeholder.com/150/e3f2fd/007bff?text=참여자+대기중";
-      
+      db.ref('locations/' + locationName).once('value').then((snapshot) => {
+        const info = snapshot.val() || {};
+        document.getElementById('modal-admin-photo').src = info.adminPhoto || "https://via.placeholder.com/150/e3f2fd/007bff?text=대기중";
+        document.getElementById('modal-user-photo').src = info.approvedUserPhoto || "https://via.placeholder.com/150/e3f2fd/007bff?text=대기중";
+      });
       document.getElementById('location-modal').classList.add('active');
     }
 
-    function closeLocationModal() {
-      document.getElementById('location-modal').classList.remove('active');
-    }
+    function closeLocationModal() { document.getElementById('location-modal').classList.remove('active'); }
 
-    // ==========================================
-    // 앱 상태 변수 및 카메라 로직
-    // ==========================================
-    let activityCount = 12; 
-    let activityFee = 240000;
-    let sackCount = 15;
-    let timerInterval = null;
-    let seconds = 0;
-    
-    let cameraStream = null;
-    let currentCameraPhase = ''; 
-    let sessionPhotos = {}; // 이번 플로깅 세션에 촬영한 4장의 사진(Base64)을 임시 저장할 객체
-
-    async function openCamera(phase) {
-      currentCameraPhase = phase;
-      const instruction = document.getElementById('camera-instruction');
-      const stepBadge = document.getElementById('step-badge');
-      const captureBtn = document.getElementById('capture-btn');
-      let facingMode = 'environment';
-      
-      // 플로깅 진행 화면 진입 전이라면 모달을 닫아줌
-      closeLocationModal(); 
-      closeCamera();
-
-      if (phase === 'start_selfie') {
-        stepBadge.innerText = '시작 1/2 단계';
-        instruction.innerText = '플로깅을 시작하는 본인(얼굴) 사진을 촬영해주세요.';
-        captureBtn.innerText = '촬영 및 다음으로';
-        facingMode = 'user'; 
-      } else if (phase === 'start_location') {
-        stepBadge.innerText = '시작 2/2 단계';
-        instruction.innerText = '청소하기 전 플로깅할 위치의 사진을 촬영해주세요.';
-        captureBtn.innerText = '촬영 후 플로깅 시작';
-        facingMode = 'environment'; 
-      } else if (phase === 'end_trash_selfie') {
-        stepBadge.innerText = '종료 1/2 단계';
-        instruction.innerText = '수거한 마대자루와 본인이 함께 나오는 사진을 촬영해주세요.';
-        captureBtn.innerText = '촬영 및 다음으로';
-        facingMode = 'user'; 
-      } else if (phase === 'end_location') {
-        stepBadge.innerText = '종료 2/2 단계';
-        instruction.innerText = '청소 후 깨끗해진 해변의 모습을 촬영해주세요.';
-        captureBtn.innerText = '촬영 후 최종 인증하기';
-        facingMode = 'environment'; 
-      }
-
-      showScreen('camera-screen');
-
-      try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
-        document.getElementById('camera-feed').srcObject = cameraStream;
-      } catch (err) {
-        alert('카메라 접근 권한을 허용해주세요.');
-      }
-    }
-
-    function closeCamera() {
-      if (cameraStream) {
-        cameraStream.getTracks().forEach(track => track.stop());
-        cameraStream = null;
-      }
-    }
-    
-    // 현재 비디오 화면을 캔버스를 이용해 사진으로 캡처하고 Base64로 압축하는 함수
-    function captureVideoFrame() {
+    // 강력한 사진 촬영 기능 (에러 나도 파란색 더미 사진 반환)
+    function takeSnapshot() {
       const video = document.getElementById('camera-feed');
       const canvas = document.createElement('canvas');
-      
-      // 사진 용량을 줄이기 위해 절반 크기로 리사이징
-      const scale = 0.5; 
-      canvas.width = video.videoWidth * scale;
-      canvas.height = video.videoHeight * scale;
-      
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       
-      // JPEG 포맷, 품질 60%로 압축하여 반환
+      // 비디오가 안 켜졌을 경우 대비 방어 코드
+      if (!video || !video.videoWidth || video.videoWidth === 0) {
+        canvas.width = 400; canvas.height = 300;
+        ctx.fillStyle = '#007bff'; ctx.fillRect(0, 0, 400, 300);
+        ctx.fillStyle = 'white'; ctx.font = '20px Arial'; ctx.fillText('카메라 인식 불가', 120, 150);
+        return canvas.toDataURL('image/jpeg', 0.8);
+      }
+
+      let width = video.videoWidth;
+      let height = video.videoHeight;
+      const MAX = 400;
+      if (width > MAX) { height = Math.round(height * MAX / width); width = MAX; }
+      
+      canvas.width = width; canvas.height = height;
+      ctx.drawImage(video, 0, 0, width, height);
       return canvas.toDataURL('image/jpeg', 0.6);
     }
 
-    document.getElementById('login-btn').addEventListener('click', (e) => {
-      e.preventDefault();
-      const email = document.getElementById('email-input').value;
-      if (email.endsWith('.ac.kr')) {
-        showScreen('dashboard-screen');
-      } else {
-        alert('대학 웹메일(.ac.kr)로만 가입 및 로그인이 가능합니다.');
+    async function openCamera(phase) {
+      currentCameraPhase = phase;
+      if(cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); }
+      showScreen('camera-screen');
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: phase.includes('selfie') ? 'user' : 'environment' } });
+        document.getElementById('camera-feed').srcObject = cameraStream;
+      } catch (err) {
+        alert('카메라 권한이 없거나 지원하지 않는 기기입니다. 계속 진행 가능합니다.');
       }
-    });
+    }
 
-    document.getElementById('start-plogging-btn').addEventListener('click', (e) => {
-      e.preventDefault();
-      document.getElementById('current-plogging-loc').innerText = selectedLocation;
-      sessionPhotos = {}; // 사진 세션 초기화
+    document.getElementById('login-btn').addEventListener('click', () => showScreen('dashboard-screen'));
+    document.getElementById('start-plogging-btn').addEventListener('click', () => {
+      selectedLocation = document.getElementById('simulated-location').value;
+      document.getElementById('current-plogging-location').innerText = selectedLocation;
       openCamera('start_selfie');
     });
-
-    document.getElementById('end-plogging-btn').addEventListener('click', (e) => {
-      e.preventDefault();
-      openCamera('end_trash_selfie');
-    });
-
-    // 촬영 버튼 클릭 시 단계별 로직 처리 및 파이어베이스 업로드
-    document.getElementById('capture-btn').addEventListener('click', (e) => {
-      e.preventDefault();
-      
-      // 1. 현재 화면의 사진을 저장
-      const base64Photo = captureVideoFrame();
-
-      if (currentCameraPhase === 'start_selfie') {
-        sessionPhotos.start_selfie = base64Photo;
-        alert('본인 인증 사진이 임시 저장되었습니다.\n이어서 플로깅 장소 사진을 촬영합니다.');
-        openCamera('start_location'); 
-        
-      } else if (currentCameraPhase === 'start_location') {
-        sessionPhotos.start_location = base64Photo;
-        closeCamera(); 
-        alert(`인증되었습니다. [${selectedLocation}] GPS 추적을 시작합니다.`);
+    document.getElementById('end-plogging-btn').addEventListener('click', () => openCamera('end_trash_selfie'));
+    
+    document.getElementById('capture-btn').addEventListener('click', () => {
+      const photo = takeSnapshot();
+      if (currentCameraPhase === 'start_selfie') { capturedPhotos.startSelfie = photo; openCamera('start_location'); }
+      else if (currentCameraPhase === 'start_location') {
+        capturedPhotos.startLocation = photo;
+        if(cameraStream) cameraStream.getTracks().forEach(t => t.stop());
         showScreen('plogging-screen');
-        
-        seconds = 0;
-        timerInterval = setInterval(() => {
-          seconds++;
-          const m = String(Math.floor(seconds / 60)).padStart(2, '0');
-          const s = String(seconds % 60).padStart(2, '0');
-          document.getElementById('timer-display').innerText = `${m}:${s}`;
-        }, 1000);
-        
-      } else if (currentCameraPhase === 'end_trash_selfie') {
-        sessionPhotos.end_trash_selfie = base64Photo;
-        alert('마대자루 인증 사진이 임시 저장되었습니다.\n마지막으로 청소 후 해변 사진을 촬영합니다.');
-        openCamera('end_location'); 
-        
-      } else if (currentCameraPhase === 'end_location') {
-        sessionPhotos.end_location = base64Photo;
-        closeCamera();
-        
-        // 제출 버튼 비활성화 (중복 클릭 방지)
-        document.getElementById('capture-btn').innerText = "서버 전송 중...";
-        document.getElementById('capture-btn').disabled = true;
-
-        // 파이어베이스에 활동 사진 일괄 업로드 (관리자 승인 대기열로)
-        const userEmail = document.getElementById('email-input').value;
-        db.ref('pending_approvals').push({
-          location: selectedLocation,
-          user: userEmail,
-          photos: sessionPhotos,
-          timestamp: Date.now()
-        }).then(() => {
-          alert('모든 인증이 성공적으로 완료되었습니다!\n(관리자가 사진을 승인하면 현재 해변 사진에 반영됩니다.)');
-          
-          clearInterval(timerInterval);
-          document.getElementById('timer-display').innerText = '00:00';
-          
-          activityCount++;
-          activityFee += 20000;
-          sackCount++;
-          
-          document.getElementById('activity-count').innerText = `총 ${activityCount}회`;
-          document.getElementById('activity-fee').innerText = `${activityFee.toLocaleString()}원`;
-          document.getElementById('sack-count').innerText = `${sackCount}개`;
-
-          // 테스트용: 로컬 인원수 증가
-          locationsData[selectedLocation].completed++;
-          renderMapLabels();
-          
-          document.getElementById('capture-btn').innerText = "촬영 후 최종 인증하기";
-          document.getElementById('capture-btn').disabled = false;
-          showScreen('dashboard-screen');
-          
-        }).catch(err => {
-          alert('사진 업로드 중 오류가 발생했습니다. 다시 시도해주세요.');
-          document.getElementById('capture-btn').innerText = "촬영 후 최종 인증하기";
-          document.getElementById('capture-btn').disabled = false;
-        });
+        timerInterval = setInterval(() => { seconds++; document.getElementById('timer-display').innerText = `00:${String(seconds%60).padStart(2,'0')}`; }, 1000);
+      }
+      else if (currentCameraPhase === 'end_trash_selfie') { capturedPhotos.endSelfie = photo; openCamera('end_location'); }
+      else if (currentCameraPhase === 'end_location') {
+        capturedPhotos.endLocation = photo;
+        if(cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+        clearInterval(timerInterval);
+        showScreen('report-screen');
       }
     });
 
-    document.getElementById('cancel-camera-btn').addEventListener('click', (e) => {
-      e.preventDefault();
-      closeCamera();
-      if (currentCameraPhase.startsWith('start')) {
+    document.getElementById('submit-report-btn').addEventListener('click', () => {
+      const btn = document.getElementById('submit-report-btn');
+      btn.innerText = "서버로 전송 중..."; btn.disabled = true;
+
+      const payload = {
+        userEmail: document.getElementById('email-input').value,
+        location: selectedLocation,
+        sackCount: document.getElementById('report-sack-count').value || 1,
+        photos: capturedPhotos,
+        status: 'pending',
+        timestamp: Date.now()
+      };
+
+      const newRequestRef = db.ref('pending_approvals').push();
+      newRequestRef.set(payload).then(() => {
+        alert('✅ 성공적으로 제출되었습니다!');
+        btn.innerText = "제출 완료"; btn.disabled = false;
         showScreen('dashboard-screen');
-      } else {
-        showScreen('plogging-screen');
-      }
+        
+        db.ref('pending_approvals/' + newRequestRef.key + '/status').on('value', (snap) => {
+          if (snap.val() === 'rejected') alert("🚨 관리자에 의해 활동이 반려되었습니다.");
+          else if (snap.val() === 'approved') alert("🎉 방금 제출한 활동이 공인되었습니다!");
+        });
+      }).catch(err => {
+        alert("❌ 전송 실패: " + err.message);
+        btn.innerText = "다시 시도"; btn.disabled = false;
+      });
     });
   </script>
 </body>
