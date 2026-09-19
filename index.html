@@ -55,7 +55,6 @@
   </style>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 </head>
 <body>
 
@@ -185,7 +184,7 @@
   </div>
 
   <script>
-    /* 본인의 파이어베이스 Config 입력 */
+    /* 본인의 파이어베이스 Config 입력 (이전과 동일하게 유지) */
     const firebaseConfig = {
   apiKey: "AIzaSyBir23HnIvMiP7GYXRAKqk0dWtt0hMSgD4",
   authDomain: "flogging-31ab2.firebaseapp.com",
@@ -200,7 +199,6 @@
     
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const storage = firebase.storage();
     
     const noPhoto = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%23eee'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='14' fill='%23555'%3E대기중%3C/text%3E%3C/svg%3E";
 
@@ -348,25 +346,11 @@
       }
     });
 
-    async function uploadImageToStorage(base64Str, filename) {
-      if(!base64Str) return noPhoto;
-      const ref = storage.ref(`plogging_photos/${Date.now()}_${filename}.jpg`);
-      await ref.putString(base64Str, 'data_url');
-      return await ref.getDownloadURL();
-    }
-
     document.getElementById('submit-report-btn').addEventListener('click', async () => {
       const btn = document.getElementById('submit-report-btn');
-      btn.innerText = "사진 업로드 및 전송 중..."; btn.disabled = true;
+      btn.innerText = "서버로 전송 중..."; btn.disabled = true;
 
       try {
-        const [url1, url2, url3, url4] = await Promise.all([
-          uploadImageToStorage(capturedPhotos.startSelfie, 'start_selfie'),
-          uploadImageToStorage(capturedPhotos.startLocation, 'start_loc'),
-          uploadImageToStorage(capturedPhotos.endSelfie, 'end_selfie'),
-          uploadImageToStorage(capturedPhotos.endLocation, 'end_loc')
-        ]);
-
         const selectedTrashTypes = Array.from(document.querySelectorAll('input[name="trash-type"]:checked')).map(cb => cb.value);
 
         const payload = {
@@ -374,7 +358,12 @@
           location: selectedLocation,
           sackCount: document.getElementById('report-sack-count').value || 1,
           trashTypes: selectedTrashTypes,
-          photos: { startSelfie: url1, startLocation: url2, endSelfie: url3, endLocation: url4 },
+          photos: {
+            startSelfie: capturedPhotos.startSelfie || noPhoto,
+            startLocation: capturedPhotos.startLocation || noPhoto,
+            endSelfie: capturedPhotos.endSelfie || noPhoto,
+            endLocation: capturedPhotos.endLocation || noPhoto
+          },
           status: 'pending',
           timestamp: Date.now()
         };
