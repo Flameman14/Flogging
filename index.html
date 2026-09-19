@@ -62,10 +62,10 @@
     <div id="login-screen" class="screen active">
       <h2 style="margin-top: 50px;">우도 플로깅 시작하기</h2>
       <div class="input-group">
-        <input type="email" id="email-input" placeholder="example@univ.ac.kr" value="test@jejunu.ac.kr">
+        <input type="email" id="email-input" placeholder="example@univ.ac.kr">
       </div>
       <div class="input-group">
-        <input type="password" placeholder="비밀번호" value="1234">
+        <input type="password" placeholder="비밀번호 (자율 입력)" value="1234">
       </div>
       <button type="button" id="login-btn" class="primary-btn">로그인</button>
     </div>
@@ -126,6 +126,17 @@
           <span id="modal-status-badge" class="modal-badge bg-good">양호</span>
         </div>
         <p class="modal-desc" id="modal-desc"></p>
+
+        <div class="stats-container" style="margin-top:0; margin-bottom:15px; padding:10px; border:none; background:#f4f7f6; border-radius:8px;">
+          <div class="stat-item">
+            <span class="stat-label">오늘 완료한 인원</span>
+            <span class="stat-value" id="modal-today-completed">조회 중...</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">현재 진행 중</span>
+            <span class="stat-value" id="modal-current-active">조회 중...</span>
+          </div>
+        </div>
         
         <p style="font-size: 12px; color: #555; margin: 0 0 5px 0; font-weight: bold;">실시간 현장 사진</p>
         <div class="modal-photos">
@@ -184,7 +195,7 @@
   </div>
 
   <script>
-    /* 본인의 파이어베이스 Config 입력 (이전과 동일하게 유지) */
+    /* 본인의 파이어베이스 Config 입력 */
     const firebaseConfig = {
   apiKey: "AIzaSyBir23HnIvMiP7GYXRAKqk0dWtt0hMSgD4",
   authDomain: "flogging-31ab2.firebaseapp.com",
@@ -217,6 +228,7 @@
 
     let timerInterval = null; let seconds = 0; let cameraStream = null;
     let currentCameraPhase = ''; let selectedLocation = ''; let currentUserEmail = '';
+    let currentSessionRef = null;
     let capturedPhotos = { startSelfie: null, startLocation: null, endSelfie: null, endLocation: null };
 
     const cameraGuide = {
@@ -225,6 +237,12 @@
       'end_trash_selfie': { step: '3/4', text: '채운 마대자루와 함께 본인의 사진을 찍어주세요.' },
       'end_location': { step: '4/4', text: '플로깅 후 장소의 변화를 파악하기 위한 사진을 찍어주세요.' }
     };
+
+    // 로드 시 로컬 스토리지에 저장된 이메일이 있으면 불러오기
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedEmail = localStorage.getItem('plogging_email');
+      if(savedEmail) document.getElementById('email-input').value = savedEmail;
+    });
 
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
@@ -237,7 +255,7 @@
         if(snap.val()) {
           Object.values(snap.val()).forEach(req => {
             if(req.status === 'approved') {
-              count++; fee += 20000; sacks += parseInt(req.sackCount || 0); // 회당 활동비 2만원 가정
+              count++; fee += 20000; sacks += parseInt(req.sackCount || 0);
             }
           });
         }
@@ -248,8 +266,13 @@
     }
 
     document.getElementById('login-btn').addEventListener('click', () => {
-      currentUserEmail = document.getElementById('email-input').value;
-      if(!currentUserEmail) return alert('이메일을 입력해주세요.');
+      const emailVal = document.getElementById('email-input').value.trim();
+      if(!emailVal) return alert('이메일을 입력해주세요.');
+      if(!emailVal.endsWith('.ac.kr')) return alert('🚨 대학생 인증을 위해 .ac.kr 로 끝나는 이메일만 사용 가능합니다.');
+      
+      currentUserEmail = emailVal;
+      localStorage.setItem('plogging_email', currentUserEmail); // 자동 로그인용 이메일 저장
+
       loadUserStats();
       showScreen('dashboard-screen');
     });
@@ -277,6 +300,7 @@
     function openLocationModal(locationName) {
       document.getElementById('modal-title').innerText = locationName;
       document.getElementById('modal-desc').innerText = locDesc[locationName] || "";
+      
       db.ref('locations/' + locationName).once('value').then((snapshot) => {
         const info = snapshot.val() || { score: 0 };
         const badge = document.getElementById('modal-status-badge');
@@ -286,6 +310,30 @@
         document.getElementById('modal-admin-photo').src = info.adminPhoto || noPhoto;
         document.getElementById('modal-user-photo').src = info.approvedUserPhoto || noPhoto;
       });
+
+      document.getElementById('modal-today-completed').innerText = "조회 중...";
+      document.getElementById('modal-current-active').innerText = "조회 중...";
+      
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+      db.ref('pending_approvals').orderByChild('location').equalTo(locationName).once('value', (snap) => {
+        let todayCompleted = 0;
+        if (snap.val()) {
+          Object.values(snap.val()).forEach(req => {
+            if (req.status === 'approved' && req.timestamp >= startOfDay) {
+              todayCompleted++;
+            }
+          });
+        }
+        document.getElementById('modal-today-completed').innerText = `${todayCompleted}명`;
+      });
+
+      db.ref('active_ploggers').orderByChild('location').equalTo(locationName).once('value', (snap) => {
+        let currentActive = snap.val() ? Object.keys(snap.val()).length : 0;
+        document.getElementById('modal-current-active').innerText = `${currentActive}명`;
+      });
+
       document.getElementById('location-modal').classList.add('active');
     }
 
@@ -336,6 +384,10 @@
         if(cameraStream) cameraStream.getTracks().forEach(t => t.stop());
         showScreen('plogging-screen');
         timerInterval = setInterval(() => { seconds++; document.getElementById('timer-display').innerText = `00:${String(seconds%60).padStart(2,'0')}`; }, 1000);
+        
+        currentSessionRef = db.ref('active_ploggers').push();
+        currentSessionRef.set({ location: selectedLocation, timestamp: Date.now() });
+        currentSessionRef.onDisconnect().remove(); 
       }
       else if (currentCameraPhase === 'end_trash_selfie') { capturedPhotos.endSelfie = photo; openCamera('end_location'); }
       else if (currentCameraPhase === 'end_location') {
@@ -343,6 +395,11 @@
         if(cameraStream) cameraStream.getTracks().forEach(t => t.stop());
         clearInterval(timerInterval);
         showScreen('report-screen');
+        
+        if(currentSessionRef) {
+          currentSessionRef.remove();
+          currentSessionRef = null;
+        }
       }
     });
 
@@ -372,7 +429,14 @@
         await newRef.set(payload);
         
         alert('✅ 성공적으로 제출되었습니다!');
-        btn.innerText = "제출 완료"; btn.disabled = false;
+        
+        // 폼 및 변수 초기화
+        document.getElementById('report-sack-count').value = 1;
+        document.querySelectorAll('input[name="trash-type"]').forEach(cb => cb.checked = false);
+        capturedPhotos = { startSelfie: null, startLocation: null, endSelfie: null, endLocation: null };
+        seconds = 0;
+        
+        btn.innerText = "제출 및 인증 완료"; btn.disabled = false;
         showScreen('dashboard-screen');
         
         db.ref('pending_approvals/' + newRef.key + '/status').on('value', (snap) => {
@@ -381,7 +445,7 @@
         });
       } catch(err) {
         alert("❌ 전송 실패: " + err.message);
-        btn.innerText = "다시 시도"; btn.disabled = false;
+        btn.innerText = "제출 및 인증 완료"; btn.disabled = false;
       }
     });
   </script>
