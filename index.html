@@ -25,14 +25,7 @@
     .stat-value { font-size: 18px; font-weight: bold; color: #1976d2; }
     .custom-map-wrapper { position: relative; width: 100%; height: 420px; background: #e9f5f9; border-radius: 12px; border: 1px solid #cce5ff; margin-bottom: 20px; overflow: hidden; }
     .map-svg { width: 100%; height: 100%; }
-    .map-legend { position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 8px; font-size: 11px; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #ccc; }
-    .legend-title { font-weight: bold; margin-bottom: 6px; color: #333; }
-    .legend-item { display: flex; align-items: center; margin-bottom: 4px; }
-    .legend-color { width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
     .map-label { position: absolute; padding: 4px 6px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; transform: translate(-50%, -50%); z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.1); white-space: nowrap; transition: all 0.2s; border: 1px solid transparent; }
-    .bg-good { background-color: #28a745; }
-    .bg-normal { background-color: #ffc107; color: #333 !important; }
-    .bg-danger { background-color: #dc3545; }
     .status-good { border-color: #28a745; color: #155724; background-color: #d4edda; }
     .status-normal { border-color: #ffc107; color: #856404; background-color: #fff3cd; }
     .status-danger { border-color: #dc3545; color: #721c24; background-color: #f8d7da; }
@@ -42,6 +35,9 @@
     .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e3f2fd; padding-bottom: 10px; margin-bottom: 10px; }
     .modal-header h3 { margin: 0; color: #1976d2; }
     .modal-badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; color: white; }
+    .bg-good { background-color: #28a745; }
+    .bg-normal { background-color: #ffc107; color: #333 !important; }
+    .bg-danger { background-color: #dc3545; }
     .modal-desc { font-size: 13px; color: #444; line-height: 1.5; margin-bottom: 15px; }
     .modal-photos { display: flex; gap: 10px; margin-bottom: 15px; }
     .modal-photos div { width: 50%; text-align: center; }
@@ -59,6 +55,7 @@
   </style>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 </head>
 <body>
 
@@ -79,10 +76,10 @@
       
       <div class="activity-card">
         <p>나의 서포터즈 활동 내역</p>
-        <h3 id="activity-count">총 12회</h3>
+        <h3 id="activity-count">조회 중...</h3>
         <div class="stats-container">
-          <div class="stat-item"><span class="stat-label">누적 활동비</span><span class="stat-value" id="activity-fee">240,000원</span></div>
-          <div class="stat-item"><span class="stat-label">수거한 마대</span><span class="stat-value" id="sack-count">15개</span></div>
+          <div class="stat-item"><span class="stat-label">누적 활동비</span><span class="stat-value" id="activity-fee">-원</span></div>
+          <div class="stat-item"><span class="stat-label">수거한 마대</span><span class="stat-value" id="sack-count">-개</span></div>
         </div>
       </div>
 
@@ -148,11 +145,11 @@
 
     <div id="camera-screen" class="screen">
       <h2>사진 촬영 📸</h2>
-      <span id="step-badge" class="step-indicator">1/2 단계</span>
-      <p id="camera-instruction" style="color: #666; margin-bottom: 15px; font-weight:bold;"></p>
+      <span id="step-badge" class="step-indicator">1/4 단계</span>
+      <p id="camera-instruction" style="color: #666; margin-bottom: 15px; font-weight:bold; font-size:14px; line-height:1.4;"></p>
       <div id="camera-view-container"><video id="camera-feed" autoplay playsinline></video></div>
       <button type="button" id="capture-btn" class="primary-btn">촬영 및 다음으로</button>
-      <button type="button" id="cancel-camera-btn" class="danger-btn">취소</button>
+      <button type="button" id="cancel-camera-btn" class="danger-btn" onclick="showScreen('dashboard-screen')">취소</button>
     </div>
 
     <div id="plogging-screen" class="screen">
@@ -174,8 +171,12 @@
       <div class="input-group">
         <p style="margin: 0 0 5px 0; font-weight: bold; color: #333;">주로 수거한 쓰레기 종류</p>
         <div class="checkbox-group">
-          <label class="checkbox-label"><input type="checkbox" name="trash-type" value="플라스틱"> 플라스틱</label>
-          <label class="checkbox-label"><input type="checkbox" name="trash-type" value="스티로폼"> 스티로폼</label>
+          <label class="checkbox-label"><input type="checkbox" name="trash-type" value="플라스틱/비닐"> 플라스틱/비닐</label>
+          <label class="checkbox-label"><input type="checkbox" name="trash-type" value="스티로폼/부표"> 스티로폼/부표</label>
+          <label class="checkbox-label"><input type="checkbox" name="trash-type" value="폐어구/그물/밧줄"> 폐어구/그물/밧줄</label>
+          <label class="checkbox-label"><input type="checkbox" name="trash-type" value="유리/캔"> 유리/캔</label>
+          <label class="checkbox-label"><input type="checkbox" name="trash-type" value="목재/대형폐기물"> 목재/대형폐기물</label>
+          <label class="checkbox-label"><input type="checkbox" name="trash-type" value="기타"> 기타</label>
         </div>
       </div>
       <div style="flex-grow: 1;"></div>
@@ -199,6 +200,7 @@
     
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    const storage = firebase.storage();
     
     const noPhoto = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%23eee'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='14' fill='%23555'%3E대기중%3C/text%3E%3C/svg%3E";
 
@@ -215,15 +217,44 @@
       '상고수동해변': "하고수동해수욕장 위쪽에 자리한 맑고 한적한 해변입니다. 사람들의 발길이 비교적 적어 조용하고 평화로운 분위기를 느낄 수 있습니다."
     };
 
-    let activityCount = 12; let activityFee = 240000; let totalSackCount = 15;
     let timerInterval = null; let seconds = 0; let cameraStream = null;
-    let currentCameraPhase = ''; let selectedLocation = '';
+    let currentCameraPhase = ''; let selectedLocation = ''; let currentUserEmail = '';
     let capturedPhotos = { startSelfie: null, startLocation: null, endSelfie: null, endLocation: null };
+
+    const cameraGuide = {
+      'start_selfie': { step: '1/4', text: '인증을 위해 빈 마대자루를 들고 있는 본인의 사진을 찍어주세요.' },
+      'start_location': { step: '2/4', text: '플로깅을 진행할 장소의 현재 모습을 넓게 찍어주세요.' },
+      'end_trash_selfie': { step: '3/4', text: '채운 마대자루와 함께 본인의 사진을 찍어주세요.' },
+      'end_location': { step: '4/4', text: '플로깅 후 장소의 변화를 파악하기 위한 사진을 찍어주세요.' }
+    };
 
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
       document.getElementById(screenId).classList.add('active');
     }
+
+    function loadUserStats() {
+      db.ref('pending_approvals').orderByChild('userEmail').equalTo(currentUserEmail).on('value', (snap) => {
+        let count = 0, fee = 0, sacks = 0;
+        if(snap.val()) {
+          Object.values(snap.val()).forEach(req => {
+            if(req.status === 'approved') {
+              count++; fee += 20000; sacks += parseInt(req.sackCount || 0); // 회당 활동비 2만원 가정
+            }
+          });
+        }
+        document.getElementById('activity-count').innerText = `총 ${count}회`;
+        document.getElementById('activity-fee').innerText = `${fee.toLocaleString()}원`;
+        document.getElementById('sack-count').innerText = `${sacks}개`;
+      });
+    }
+
+    document.getElementById('login-btn').addEventListener('click', () => {
+      currentUserEmail = document.getElementById('email-input').value;
+      if(!currentUserEmail) return alert('이메일을 입력해주세요.');
+      loadUserStats();
+      showScreen('dashboard-screen');
+    });
 
     db.ref('locations').on('value', (snapshot) => {
       const data = snapshot.val();
@@ -235,7 +266,6 @@
             else if (info.score <= 3) label.className = `map-label status-normal`;
             else label.className = `map-label status-danger`;
           }
-          
           if (document.getElementById('location-modal').classList.contains('active')) {
             if(document.getElementById('modal-title').innerText === loc) {
               document.getElementById('modal-admin-photo').src = info.adminPhoto || noPhoto;
@@ -249,14 +279,12 @@
     function openLocationModal(locationName) {
       document.getElementById('modal-title').innerText = locationName;
       document.getElementById('modal-desc').innerText = locDesc[locationName] || "";
-      
       db.ref('locations/' + locationName).once('value').then((snapshot) => {
         const info = snapshot.val() || { score: 0 };
         const badge = document.getElementById('modal-status-badge');
         if (info.score <= 1) { badge.innerText = '양호'; badge.className = 'modal-badge bg-good'; }
         else if (info.score <= 3) { badge.innerText = '수거 권장'; badge.className = 'modal-badge bg-normal'; }
         else { badge.innerText = '집중수거'; badge.className = 'modal-badge bg-danger'; }
-
         document.getElementById('modal-admin-photo').src = info.adminPhoto || noPhoto;
         document.getElementById('modal-user-photo').src = info.approvedUserPhoto || noPhoto;
       });
@@ -284,6 +312,9 @@
 
     async function openCamera(phase) {
       currentCameraPhase = phase;
+      document.getElementById('step-badge').innerText = `${cameraGuide[phase].step} 단계`;
+      document.getElementById('camera-instruction').innerText = cameraGuide[phase].text;
+      
       if(cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); }
       showScreen('camera-screen');
       try {
@@ -292,7 +323,6 @@
       } catch (err) { alert('카메라가 지원되지 않습니다. 바로 촬영 버튼을 누르세요.'); }
     }
 
-    document.getElementById('login-btn').addEventListener('click', () => showScreen('dashboard-screen'));
     document.getElementById('start-plogging-btn').addEventListener('click', () => {
       selectedLocation = document.getElementById('simulated-location').value;
       document.getElementById('current-plogging-location').innerText = selectedLocation;
@@ -318,21 +348,40 @@
       }
     });
 
-    document.getElementById('submit-report-btn').addEventListener('click', () => {
+    async function uploadImageToStorage(base64Str, filename) {
+      if(!base64Str) return noPhoto;
+      const ref = storage.ref(`plogging_photos/${Date.now()}_${filename}.jpg`);
+      await ref.putString(base64Str, 'data_url');
+      return await ref.getDownloadURL();
+    }
+
+    document.getElementById('submit-report-btn').addEventListener('click', async () => {
       const btn = document.getElementById('submit-report-btn');
-      btn.innerText = "서버로 전송 중..."; btn.disabled = true;
+      btn.innerText = "사진 업로드 및 전송 중..."; btn.disabled = true;
 
-      const payload = {
-        userEmail: document.getElementById('email-input').value,
-        location: selectedLocation,
-        sackCount: document.getElementById('report-sack-count').value || 1,
-        photos: capturedPhotos,
-        status: 'pending',
-        timestamp: Date.now()
-      };
+      try {
+        const [url1, url2, url3, url4] = await Promise.all([
+          uploadImageToStorage(capturedPhotos.startSelfie, 'start_selfie'),
+          uploadImageToStorage(capturedPhotos.startLocation, 'start_loc'),
+          uploadImageToStorage(capturedPhotos.endSelfie, 'end_selfie'),
+          uploadImageToStorage(capturedPhotos.endLocation, 'end_loc')
+        ]);
 
-      const newRef = db.ref('pending_approvals').push();
-      newRef.set(payload).then(() => {
+        const selectedTrashTypes = Array.from(document.querySelectorAll('input[name="trash-type"]:checked')).map(cb => cb.value);
+
+        const payload = {
+          userEmail: currentUserEmail,
+          location: selectedLocation,
+          sackCount: document.getElementById('report-sack-count').value || 1,
+          trashTypes: selectedTrashTypes,
+          photos: { startSelfie: url1, startLocation: url2, endSelfie: url3, endLocation: url4 },
+          status: 'pending',
+          timestamp: Date.now()
+        };
+
+        const newRef = db.ref('pending_approvals').push();
+        await newRef.set(payload);
+        
         alert('✅ 성공적으로 제출되었습니다!');
         btn.innerText = "제출 완료"; btn.disabled = false;
         showScreen('dashboard-screen');
@@ -341,10 +390,10 @@
           if (snap.val() === 'rejected') alert("🚨 관리자에 의해 활동이 반려되었습니다.");
           else if (snap.val() === 'approved') alert("🎉 방금 제출한 활동이 공인되었습니다!");
         });
-      }).catch(err => {
+      } catch(err) {
         alert("❌ 전송 실패: " + err.message);
         btn.innerText = "다시 시도"; btn.disabled = false;
-      });
+      }
     });
   </script>
 </body>
