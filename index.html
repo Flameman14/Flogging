@@ -158,15 +158,37 @@
 
     function initMap() {
       if (map !== null) return; 
-      map = L.map('map-container').setView([33.5043, 126.9534], 13);
+      // 우도 전체가 잘 보이도록 중심점 설정
+      map = L.map('map-container').setView([33.5100, 126.9550], 13);
       
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         attribution: '© OpenStreetMap contributors, © CARTO'
       }).addTo(map);
 
-      L.marker([33.5085, 126.9443]).addTo(map).bindPopup('서빈백사 (양호)');
-      L.marker([33.5182, 126.9632]).addTo(map).bindPopup('하고수동 (보통)');
-      L.marker([33.4975, 126.9682]).addTo(map).bindPopup('검멀레 (위험)');
+      // 요청하신 우도 상세 위치 좌표 데이터
+      const udoLocations = [
+        { name: '천진항·톨칸이', lat: 33.4925, lng: 126.9472 },
+        { name: '서천진동해변', lat: 33.4930, lng: 126.9430 },
+        { name: '서빈백사', lat: 33.5085, lng: 126.9443 },
+        { name: '하우목동항', lat: 33.5188, lng: 126.9443 },
+        { name: '서쪽 해안도로', lat: 33.5130, lng: 126.9425 },
+        { name: '상고수동해변', lat: 33.5230, lng: 126.9500 },
+        { name: '하고수동해수욕장', lat: 33.5182, lng: 126.9632 },
+        { name: '답다니탑망루', lat: 33.5285, lng: 126.9565 },
+        { name: '검멀레해변', lat: 33.4975, lng: 126.9682 },
+        { name: '비양도 해안', lat: 33.5150, lng: 126.9740 }
+      ];
+
+      // 마커와 텍스트(Tooltip)를 지도에 추가
+      udoLocations.forEach(loc => {
+        L.marker([loc.lat, loc.lng]).addTo(map)
+         .bindTooltip(loc.name, { 
+           permanent: true, // 마우스를 올리지 않아도 항상 글씨 표시
+           direction: 'top', 
+           className: 'map-label',
+           offset: [0, -10] 
+         });
+      });
     }
 
     async function openCamera(phase) {
