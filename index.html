@@ -43,7 +43,7 @@
     
     /* 상태별 색상 (버튼 및 범례) */
     .bg-good { background-color: #28a745; }
-    .bg-normal { background-color: #ffc107; }
+    .bg-normal { background-color: #ffc107; color: #333 !important; }
     .bg-danger { background-color: #dc3545; }
 
     .status-good { border-color: #28a745; color: #155724; background-color: #d4edda; }
@@ -65,16 +65,20 @@
     .modal-stats div { text-align: center; width: 48%; font-size: 12px; }
     .modal-stats strong { display: block; font-size: 18px; color: #333; margin-top: 5px; }
     .modal-photos { display: flex; gap: 10px; }
-    .modal-photos img { width: 50%; height: 100px; object-fit: cover; border-radius: 8px; background: #eee; }
+    .modal-photos img { width: 50%; height: 100px; object-fit: cover; border-radius: 8px; background: #eee; border: 1px solid #ddd; }
     .close-modal-btn { background: #6c757d; color: white; border: none; padding: 10px; border-radius: 8px; width: 100%; font-weight: bold; margin-top: 15px; cursor: pointer; }
 
     .info-card { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
     .timer { font-size: 32px; font-weight: bold; color: #007bff; margin: 10px 0; }
 
-    #camera-view-container { flex-grow: 1; background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; }
+    #camera-view-container { flex-grow: 1; background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; position: relative; }
     #camera-feed { width: 100%; height: 100%; object-fit: cover; }
     .step-indicator { display: inline-block; background: #007bff; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-bottom: 10px; }
   </style>
+
+  <!-- 파이어베이스 SDK 추가 (버전 8 사용) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
@@ -119,8 +123,6 @@
       
       <!-- 커스텀 SVG 지도 -->
       <div class="custom-map-wrapper">
-        
-        <!-- 쓰레기 현황 범례 -->
         <div class="map-legend">
           <div class="legend-title">쓰레기 현황</div>
           <div class="legend-item"><div class="legend-color bg-good"></div>양호</div>
@@ -129,28 +131,9 @@
         </div>
 
         <svg class="map-svg" viewBox="0 0 380 480" preserveAspectRatio="xMidYMid meet">
-          <path d="M 170 30 
-                   C 190 20, 210 30, 210 50 
-                   C 230 60, 240 80, 220 110 
-                   C 210 130, 210 140, 230 140 
-                   C 260 130, 280 110, 310 110 
-                   C 340 110, 360 130, 340 150 
-                   C 320 170, 290 160, 270 170 
-                   C 260 180, 260 190, 270 220 
-                   C 280 260, 290 320, 270 360 
-                   C 280 370, 290 400, 260 420 
-                   C 240 440, 200 460, 180 440 
-                   C 170 450, 150 470, 130 460 
-                   C 110 450, 120 430, 100 420 
-                   C 80 410, 70 380, 80 340 
-                   C 90 290, 80 240, 70 210 
-                   C 50 200, 40 200, 70 180 
-                   C 80 160, 90 140, 110 120 
-                   C 130 100, 150 70, 170 30 Z"
-                fill="#d4eed1" stroke="#2c3e50" stroke-width="2"/>
+          <path d="M 170 30 C 190 20, 210 30, 210 50 C 230 60, 240 80, 220 110 C 210 130, 210 140, 230 140 C 260 130, 280 110, 310 110 C 340 110, 360 130, 340 150 C 320 170, 290 160, 270 170 C 260 180, 260 190, 270 220 C 280 260, 290 320, 270 360 C 280 370, 290 400, 260 420 C 240 440, 200 460, 180 440 C 170 450, 150 470, 130 460 C 110 450, 120 430, 100 420 C 80 410, 70 380, 80 340 C 90 290, 80 240, 70 210 C 50 200, 40 200, 70 180 C 80 160, 90 140, 110 120 C 130 100, 150 70, 170 30 Z" fill="#d4eed1" stroke="#2c3e50" stroke-width="2"/>
         </svg>
 
-        <!-- 클릭 가능한 장소 라벨 (data-loc 속성 추가) -->
         <div class="map-label" data-loc="답다니탑망대" style="left: 48%; top: 12%;" onclick="openLocationModal('답다니탑망대')">답다니탑망대</div>
         <div class="map-label" data-loc="우도 비양도" style="left: 82%; top: 28%;" onclick="openLocationModal('우도 비양도')">우도 비양도</div>
         <div class="map-label" data-loc="상고수동해변" style="left: 65%; top: 45%;" onclick="openLocationModal('상고수동해변')">상고수동해변</div>
@@ -164,7 +147,7 @@
       </div>
       
       <div style="padding-bottom: 30px;">
-        <button type="button" id="start-plogging-btn" class="primary-btn">플로깅 시작하기</button>
+        <button type="button" id="start-plogging-btn" class="primary-btn">선택한 장소 플로깅 시작하기</button>
       </div>
     </div>
 
@@ -182,10 +165,10 @@
           <div>현재 활동중인 인원<strong id="modal-active">0명</strong></div>
         </div>
         
-        <p style="font-size: 12px; color: #555; margin: 0 0 5px 0; font-weight: bold;">오늘의 현장 사진</p>
+        <p style="font-size: 12px; color: #555; margin: 0 0 5px 0; font-weight: bold;">최신 현장 사진 (관리자 / 참여자)</p>
         <div class="modal-photos">
-          <img src="https://via.placeholder.com/150/e3f2fd/007bff?text=지킴이+사진" alt="지킴이 사진">
-          <img src="https://via.placeholder.com/150/e3f2fd/007bff?text=참여자+사진" alt="참여자 사진">
+          <img id="modal-admin-photo" src="https://via.placeholder.com/150/e3f2fd/007bff?text=지킴이+사진" alt="지킴이 사진">
+          <img id="modal-user-photo" src="https://via.placeholder.com/150/e3f2fd/007bff?text=참여자+사진" alt="참여자 사진">
         </div>
 
         <button type="button" class="close-modal-btn" onclick="closeLocationModal()">닫기</button>
@@ -212,7 +195,7 @@
       
       <div class="info-card" style="background: #e3f2fd; border: 1px solid #90caf9;">
         <p style="margin:0; color:#1976d2; font-size:14px; font-weight:bold;">📍 현재 내 위치</p>
-        <h3 style="margin:5px 0 0 0; color:#333;">검멀레해변</h3>
+        <h3 id="current-plogging-loc" style="margin:5px 0 0 0; color:#333;">검멀레해변</h3>
       </div>
 
       <div class="info-card">
@@ -234,57 +217,110 @@
   </div>
 
   <script>
+    // ==========================================
+    // 파이어베이스 설정 영역 (복사한 코드를 여기에 붙여넣으세요)
+    // ==========================================
+   const firebaseConfig = {
+  apiKey: "AIzaSyBir23HnIvMiP7GYXRAKqk0dWtt0hMSgD4",
+  authDomain: "flogging-31ab2.firebaseapp.com",
+  databaseURL: "https://flogging-31ab2-default-rtdb.firebaseio.com",
+  projectId: "flogging-31ab2",
+  storageBucket: "flogging-31ab2.firebasestorage.app",
+  messagingSenderId: "359921142868",
+  appId: "1:359921142868:web:f4f96470b5c2e87ddbb1c1",
+  measurementId: "G-XS7T52VWJ4"
+};
+
+    
+    // 파이어베이스 초기화
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    // ==========================================
+
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
       document.getElementById(screenId).classList.add('active');
     }
 
-    // 장소 데이터 (인원수 조절: 검멀레를 9명으로 두어 테스트 시 10명(보통)으로 바뀌도록 설정)
+    // 장소 로컬 기본 데이터 구조 (이후 Firebase에서 업데이트됨)
     const locationsData = {
-      '서빈백사': { desc: "천연기념물 제438호 '제주 우도 홍조단괴 해빈'으로 지정되어 있습니다. 홍조류가 생리과정에서 굳어져 형성된 해변으로, 세계적으로 희귀해 학술적 가치가 높습니다.", completed: 25, active: 4 },
-      '하고수동해수욕장': { desc: "우도 동쪽에 위치한 총길이 약 400m의 해변입니다. 해변 중앙에 노출된 암석 지대가 있어 모래사장이 두 구역으로 분리된 형태를 띱니다.", completed: 15, active: 7 },
-      '검멀레해변': { desc: "우도봉 아래 협곡에 있는 폭 100여 미터의 검은 모래 해변입니다. 해변 끝에는 고래 전설이 전해지는 해식동굴(동안경굴)이 위치해 있습니다.", completed: 9, active: 12 },
-      '천진항·톨칸이': { desc: "우도의 주요 남쪽 관문이자 소의 여물통에 해당하는 톨칸이가 있는 곳입니다. 얇은 퇴적층이 수만 겹 쌓인 뚜렷한 퇴적암 지층을 관찰할 수 있습니다.", completed: 5, active: 2 },
-      '우도 비양도': { desc: "우도 북동쪽에서 짧은 육교로 연결된 부속 섬입니다. 내부에 넓은 초원이 조성되어 있어 백패킹과 캠핑의 성지로 활용되고 있습니다.", completed: 30, active: 15 },
-      '답다니탑망대': { desc: "우도 최북단에 현무암 바위로 거대하게 쌓아 올린 돌탑 망루입니다. 4·3 사건 당시 초소로 쓰였으며, 주변에 밀물 때 고기를 가두는 원담이 남아 있습니다.", completed: 22, active: 3 },
-      '서천진동해변': { desc: "천진항과 서빈백사 사이에 있는 아담한 해변입니다. 현무암과 어우러진 조용하고 잔잔한 바다 풍경을 감상할 수 있습니다.", completed: 12, active: 1 },
-      '하우목동항': { desc: "우도의 또 다른 주요 항구입니다. 배편이 자주 오가며 스쿠터 대여소와 식당이 밀집해 있어 접근성이 매우 좋습니다.", completed: 28, active: 5 },
-      '서쪽 해안도로': { desc: "우도 서안을 따라 시원하게 뻗은 해안길입니다. 자전거나 전기차를 타고 에메랄드빛 바다를 보며 쾌적하게 플로깅하기 좋습니다.", completed: 18, active: 6 },
-      '상고수동해변': { desc: "하고수동해수욕장 위쪽에 자리한 맑고 한적한 해변입니다. 비교적 사람들의 발길이 적어 조용하고 여유롭게 플로깅하기 좋습니다.", completed: 8, active: 2 }
+      '서빈백사': { desc: "천연기념물 제438호 '제주 우도 홍조단괴 해빈'...", completed: 25, active: 4, score: 0, adminPhoto: null, userPhoto: null },
+      '하고수동해수욕장': { desc: "우도 동쪽에 위치한 총길이 약 400m의 해변...", completed: 15, active: 7, score: 0, adminPhoto: null, userPhoto: null },
+      '검멀레해변': { desc: "우도봉 아래 협곡에 있는 폭 100여 미터의 검은 모래 해변...", completed: 9, active: 12, score: 0, adminPhoto: null, userPhoto: null },
+      '천진항·톨칸이': { desc: "우도의 주요 남쪽 관문이자 소의 여물통에 해당하는 곳...", completed: 5, active: 2, score: 0, adminPhoto: null, userPhoto: null },
+      '우도 비양도': { desc: "우도 북동쪽에서 짧은 육교로 연결된 부속 섬...", completed: 30, active: 15, score: 0, adminPhoto: null, userPhoto: null },
+      '답다니탑망대': { desc: "우도 최북단에 현무암 바위로 거대하게 쌓아 올린 돌탑...", completed: 22, active: 3, score: 0, adminPhoto: null, userPhoto: null },
+      '서천진동해변': { desc: "천진항과 서빈백사 사이에 있는 아담한 해변...", completed: 12, active: 1, score: 0, adminPhoto: null, userPhoto: null },
+      '하우목동항': { desc: "우도의 또 다른 주요 항구입니다...", completed: 28, active: 5, score: 0, adminPhoto: null, userPhoto: null },
+      '서쪽 해안도로': { desc: "우도 서안을 따라 시원하게 뻗은 해안길...", completed: 18, active: 6, score: 0, adminPhoto: null, userPhoto: null },
+      '상고수동해변': { desc: "하고수동해수욕장 위쪽에 자리한 맑고 한적한 해변...", completed: 8, active: 2, score: 0, adminPhoto: null, userPhoto: null }
     };
 
-    // 완료 인원수에 따라 상태 객체를 반환하는 함수
-    function getStatusInfo(completedCount) {
-      if (completedCount >= 20) return { text: '양호', bgClass: 'bg-good', labelClass: 'status-good' };
-      if (completedCount >= 10) return { text: '보통', bgClass: 'bg-normal', labelClass: 'status-normal' };
+    let selectedLocation = '검멀레해변'; // 현재 선택/플로깅 중인 장소
+
+    // 상태 색상 결정 로직 (Firebase 서버 점수 우선 반영)
+    function getStatusInfo(locData) {
+      // 만약 서버에서 넘어온 score(쓰레기 점수)가 있다면 점수 기준으로 위험도 산정
+      if (locData.score !== undefined && locData.score !== null) {
+        if (locData.score <= 1) return { text: '양호', bgClass: 'bg-good', labelClass: 'status-good' };
+        if (locData.score <= 3) return { text: '수거 권장', bgClass: 'bg-normal', labelClass: 'status-normal' };
+        return { text: '집중 수거', bgClass: 'bg-danger', labelClass: 'status-danger' };
+      }
+      
+      // 서버 점수가 없으면 기존처럼 인원수로 계산 (테스트용)
+      if (locData.completed >= 20) return { text: '양호', bgClass: 'bg-good', labelClass: 'status-good' };
+      if (locData.completed >= 10) return { text: '보통', bgClass: 'bg-normal', labelClass: 'status-normal' };
       return { text: '위험', bgClass: 'bg-danger', labelClass: 'status-danger' };
     }
 
-    // 지도 상의 라벨 색상을 현재 데이터에 맞게 업데이트하는 함수
     function renderMapLabels() {
       for (const [name, data] of Object.entries(locationsData)) {
         const el = document.querySelector(`.map-label[data-loc="${name}"]`);
         if (el) {
-          const info = getStatusInfo(data.completed);
+          const info = getStatusInfo(data);
           el.className = `map-label ${info.labelClass}`;
         }
       }
     }
-
-    // 페이지 로드 시 라벨 초기 렌더링
     renderMapLabels();
 
+    // Firebase 데이터 실시간 수신 이벤트 (관리자 앱에서 점수/사진 올리면 자동 반영)
+    db.ref('locations').on('value', (snapshot) => {
+      const data = snapshot.val();
+      if(data) {
+        for (const [loc, info] of Object.entries(data)) {
+          if (locationsData[loc]) {
+            if(info.score !== undefined) locationsData[loc].score = info.score;
+            if(info.photo) locationsData[loc].adminPhoto = info.photo;                     // 지킴이 아침 사진
+            if(info.approvedUserPhoto) locationsData[loc].userPhoto = info.approvedUserPhoto; // 승인된 참여자 사진
+          }
+        }
+        
+        renderMapLabels(); // 지도 색상 갱신
+        
+        // 현재 모달이 띄워져 있다면 모달 내용도 즉시 갱신
+        if (document.getElementById('location-modal').classList.contains('active')) {
+          openLocationModal(document.getElementById('modal-title').innerText);
+        }
+      }
+    });
+
     function openLocationModal(locationName) {
+      selectedLocation = locationName; // 클릭한 곳을 현재 플로깅할 장소로 선택
       const data = locationsData[locationName];
       document.getElementById('modal-title').innerText = locationName;
       document.getElementById('modal-desc').innerText = data.desc;
       document.getElementById('modal-completed').innerText = data.completed + '명';
       document.getElementById('modal-active').innerText = data.active + '명';
       
-      const info = getStatusInfo(data.completed);
+      const info = getStatusInfo(data);
       const badge = document.getElementById('modal-status-badge');
       badge.innerText = info.text;
       badge.className = `modal-badge ${info.bgClass}`;
+      
+      // 사진 업데이트 (서버 사진이 없으면 기본 이미지)
+      document.getElementById('modal-admin-photo').src = data.adminPhoto ? data.adminPhoto : "https://via.placeholder.com/150/e3f2fd/007bff?text=지킴이+대기중";
+      document.getElementById('modal-user-photo').src = data.userPhoto ? data.userPhoto : "https://via.placeholder.com/150/e3f2fd/007bff?text=참여자+대기중";
       
       document.getElementById('location-modal').classList.add('active');
     }
@@ -293,13 +329,18 @@
       document.getElementById('location-modal').classList.remove('active');
     }
 
+    // ==========================================
+    // 앱 상태 변수 및 카메라 로직
+    // ==========================================
     let activityCount = 12; 
     let activityFee = 240000;
     let sackCount = 15;
     let timerInterval = null;
     let seconds = 0;
+    
     let cameraStream = null;
     let currentCameraPhase = ''; 
+    let sessionPhotos = {}; // 이번 플로깅 세션에 촬영한 4장의 사진(Base64)을 임시 저장할 객체
 
     async function openCamera(phase) {
       currentCameraPhase = phase;
@@ -307,7 +348,9 @@
       const stepBadge = document.getElementById('step-badge');
       const captureBtn = document.getElementById('capture-btn');
       let facingMode = 'environment';
-
+      
+      // 플로깅 진행 화면 진입 전이라면 모달을 닫아줌
+      closeLocationModal(); 
       closeCamera();
 
       if (phase === 'start_selfie') {
@@ -338,7 +381,7 @@
         cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
         document.getElementById('camera-feed').srcObject = cameraStream;
       } catch (err) {
-        alert('카메라 접근 권한을 허용해주세요. PC나 테스트 환경에서는 화면이 검게 표시될 수 있습니다.');
+        alert('카메라 접근 권한을 허용해주세요.');
       }
     }
 
@@ -347,6 +390,23 @@
         cameraStream.getTracks().forEach(track => track.stop());
         cameraStream = null;
       }
+    }
+    
+    // 현재 비디오 화면을 캔버스를 이용해 사진으로 캡처하고 Base64로 압축하는 함수
+    function captureVideoFrame() {
+      const video = document.getElementById('camera-feed');
+      const canvas = document.createElement('canvas');
+      
+      // 사진 용량을 줄이기 위해 절반 크기로 리사이징
+      const scale = 0.5; 
+      canvas.width = video.videoWidth * scale;
+      canvas.height = video.videoHeight * scale;
+      
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // JPEG 포맷, 품질 60%로 압축하여 반환
+      return canvas.toDataURL('image/jpeg', 0.6);
     }
 
     document.getElementById('login-btn').addEventListener('click', (e) => {
@@ -361,6 +421,8 @@
 
     document.getElementById('start-plogging-btn').addEventListener('click', (e) => {
       e.preventDefault();
+      document.getElementById('current-plogging-loc').innerText = selectedLocation;
+      sessionPhotos = {}; // 사진 세션 초기화
       openCamera('start_selfie');
     });
 
@@ -369,15 +431,22 @@
       openCamera('end_trash_selfie');
     });
 
+    // 촬영 버튼 클릭 시 단계별 로직 처리 및 파이어베이스 업로드
     document.getElementById('capture-btn').addEventListener('click', (e) => {
       e.preventDefault();
+      
+      // 1. 현재 화면의 사진을 저장
+      const base64Photo = captureVideoFrame();
 
       if (currentCameraPhase === 'start_selfie') {
+        sessionPhotos.start_selfie = base64Photo;
         alert('본인 인증 사진이 임시 저장되었습니다.\n이어서 플로깅 장소 사진을 촬영합니다.');
         openCamera('start_location'); 
+        
       } else if (currentCameraPhase === 'start_location') {
+        sessionPhotos.start_location = base64Photo;
         closeCamera(); 
-        alert('인증되었습니다. GPS 추적을 시작합니다.');
+        alert(`인증되었습니다. [${selectedLocation}] GPS 추적을 시작합니다.`);
         showScreen('plogging-screen');
         
         seconds = 0;
@@ -387,29 +456,54 @@
           const s = String(seconds % 60).padStart(2, '0');
           document.getElementById('timer-display').innerText = `${m}:${s}`;
         }, 1000);
+        
       } else if (currentCameraPhase === 'end_trash_selfie') {
+        sessionPhotos.end_trash_selfie = base64Photo;
         alert('마대자루 인증 사진이 임시 저장되었습니다.\n마지막으로 청소 후 해변 사진을 촬영합니다.');
         openCamera('end_location'); 
+        
       } else if (currentCameraPhase === 'end_location') {
+        sessionPhotos.end_location = base64Photo;
         closeCamera();
-        alert('모든 인증이 성공적으로 완료되었습니다! 플로깅 기록이 저장되었습니다.');
         
-        clearInterval(timerInterval);
-        document.getElementById('timer-display').innerText = '00:00';
-        
-        activityCount++;
-        activityFee += 20000;
-        sackCount++;
-        
-        document.getElementById('activity-count').innerText = `총 ${activityCount}회`;
-        document.getElementById('activity-fee').innerText = `${activityFee.toLocaleString()}원`;
-        document.getElementById('sack-count').innerText = `${sackCount}개`;
+        // 제출 버튼 비활성화 (중복 클릭 방지)
+        document.getElementById('capture-btn').innerText = "서버 전송 중...";
+        document.getElementById('capture-btn').disabled = true;
 
-        // 완료한 검멀레해변의 인원 1 증가시키고 상태 재계산 적용
-        locationsData['검멀레해변'].completed++;
-        renderMapLabels();
-        
-        showScreen('dashboard-screen');
+        // 파이어베이스에 활동 사진 일괄 업로드 (관리자 승인 대기열로)
+        const userEmail = document.getElementById('email-input').value;
+        db.ref('pending_approvals').push({
+          location: selectedLocation,
+          user: userEmail,
+          photos: sessionPhotos,
+          timestamp: Date.now()
+        }).then(() => {
+          alert('모든 인증이 성공적으로 완료되었습니다!\n(관리자가 사진을 승인하면 현재 해변 사진에 반영됩니다.)');
+          
+          clearInterval(timerInterval);
+          document.getElementById('timer-display').innerText = '00:00';
+          
+          activityCount++;
+          activityFee += 20000;
+          sackCount++;
+          
+          document.getElementById('activity-count').innerText = `총 ${activityCount}회`;
+          document.getElementById('activity-fee').innerText = `${activityFee.toLocaleString()}원`;
+          document.getElementById('sack-count').innerText = `${sackCount}개`;
+
+          // 테스트용: 로컬 인원수 증가
+          locationsData[selectedLocation].completed++;
+          renderMapLabels();
+          
+          document.getElementById('capture-btn').innerText = "촬영 후 최종 인증하기";
+          document.getElementById('capture-btn').disabled = false;
+          showScreen('dashboard-screen');
+          
+        }).catch(err => {
+          alert('사진 업로드 중 오류가 발생했습니다. 다시 시도해주세요.');
+          document.getElementById('capture-btn').innerText = "촬영 후 최종 인증하기";
+          document.getElementById('capture-btn').disabled = false;
+        });
       }
     });
 
