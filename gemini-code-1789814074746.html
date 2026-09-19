@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>우도 플로깅 지원금 앱 (테스트)</title>
+  <title>우도 플로깅 지원금 앱</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     body { font-family: 'Pretendard', sans-serif; margin: 0; background-color: #f4f7f6; display: flex; justify-content: center; height: 100vh; }
@@ -37,6 +37,7 @@
 
     #camera-view-container { flex-grow: 1; background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; }
     #camera-feed { width: 100%; height: 100%; object-fit: cover; }
+    .step-indicator { display: inline-block; background: #007bff; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -87,13 +88,14 @@
     <!-- 3. 카메라 촬영 화면 -->
     <div id="camera-screen" class="screen">
       <h2>사진 촬영 📸</h2>
-      <p id="camera-instruction" style="color: #666; margin-bottom: 15px;">해변의 모습을 촬영해주세요.</p>
+      <span id="step-badge" class="step-indicator">1/2 단계</span>
+      <p id="camera-instruction" style="color: #666; margin-bottom: 15px; font-weight:bold;"></p>
       
       <div id="camera-view-container">
         <video id="camera-feed" autoplay playsinline></video>
       </div>
 
-      <button type="button" id="capture-btn" class="primary-btn">촬영 및 인증하기</button>
+      <button type="button" id="capture-btn" class="primary-btn">촬영 및 다음으로</button>
       <button type="button" id="cancel-camera-btn" class="danger-btn">취소</button>
     </div>
 
@@ -108,7 +110,7 @@
       
       <div class="info-card">
         <p style="margin:0 0 10px 0; font-weight:bold;">진행 내역</p>
-        <p style="margin:0; font-size:14px;">📸 시작 사진 촬영 완료</p>
+        <p style="margin:0; font-size:14px;">📸 본인 및 위치 사진 촬영 완료</p>
         <p style="margin:5px 0 0 0; font-size:14px;">📍 GPS 실시간 추적 중...</p>
       </div>
 
@@ -137,7 +139,6 @@
       if (map !== null) return; 
       map = L.map('map-container').setView([33.5043, 126.9534], 13);
       
-      // 로컬 테스트에서도 차단되지 않는 CartoDB 타일로 변경
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         attribution: '© OpenStreetMap contributors, © CARTO'
       }).addTo(map);
@@ -150,19 +151,46 @@
     async function openCamera(phase) {
       currentCameraPhase = phase;
       const instruction = document.getElementById('camera-instruction');
-      if (phase === 'start') {
-        instruction.innerText = '청소 전 해변의 모습을 촬영해주세요.';
-      } else {
-        instruction.innerText = '청소 후 깨끗해진 해변을 촬영해주세요.';
+      const stepBadge = document.getElementById('step-badge');
+      const captureBtn = document.getElementById('capture-btn');
+      
+      let facingMode = 'environment'; // 기본은 후면 카메라
+
+      // 카메라 전환을 위해 기존 스트림 끄기
+      closeCamera();
+
+      if (phase === 'start_selfie') {
+        stepBadge.innerText = '시작 1/2 단계';
+        instruction.innerText = '플로깅을 시작하는 본인(얼굴) 사진을 촬영해주세요.';
+        captureBtn.innerText = '촬영 및 다음으로';
+        facingMode = 'user'; // 전면(셀카) 카메라
+      } 
+      else if (phase === 'start_location') {
+        stepBadge.innerText = '시작 2/2 단계';
+        instruction.innerText = '청소하기 전 플로깅할 위치의 사진을 촬영해주세요.';
+        captureBtn.innerText = '촬영 후 플로깅 시작';
+        facingMode = 'environment'; // 후면 카메라
+      } 
+      else if (phase === 'end_trash_selfie') {
+        stepBadge.innerText = '종료 1/2 단계';
+        instruction.innerText = '수거한 마대자루와 본인이 함께 나오는 사진을 촬영해주세요.';
+        captureBtn.innerText = '촬영 및 다음으로';
+        facingMode = 'user'; // 전면(셀카) 카메라
+      } 
+      else if (phase === 'end_location') {
+        stepBadge.innerText = '종료 2/2 단계';
+        instruction.innerText = '청소 후 깨끗해진 해변의 모습을 촬영해주세요.';
+        captureBtn.innerText = '촬영 후 최종 인증하기';
+        facingMode = 'environment'; // 후면 카메라
       }
 
       showScreen('camera-screen');
 
       try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
         document.getElementById('camera-feed').srcObject = cameraStream;
       } catch (err) {
-        alert('카메라 접근 권한을 허용해주세요. 테스트 환경에서는 화면이 검게 표시될 수 있습니다.');
+        alert('카메라 접근 권한을 허용해주세요. PC나 테스트 환경에서는 화면이 검게 표시될 수 있습니다.');
       }
     }
 
@@ -187,24 +215,32 @@
       }
     });
 
+    // 시작 시 첫 번째 카메라 단계(본인 사진) 호출
     document.getElementById('start-plogging-btn').addEventListener('click', (e) => {
       e.preventDefault();
-      openCamera('start');
+      openCamera('start_selfie');
     });
 
+    // 종료 시 첫 번째 카메라 단계(마대자루+본인 사진) 호출
     document.getElementById('end-plogging-btn').addEventListener('click', (e) => {
       e.preventDefault();
-      openCamera('end');
+      openCamera('end_trash_selfie');
     });
 
+    // 촬영 버튼 클릭 시 단계별 분기 처리
     document.getElementById('capture-btn').addEventListener('click', (e) => {
       e.preventDefault();
-      closeCamera(); 
 
-      if (currentCameraPhase === 'start') {
+      if (currentCameraPhase === 'start_selfie') {
+        alert('본인 인증 사진이 임시 저장되었습니다.\n이어서 플로깅 장소 사진을 촬영합니다.');
+        openCamera('start_location'); // 다음 단계로 이동
+      } 
+      else if (currentCameraPhase === 'start_location') {
+        closeCamera(); 
         alert('인증되었습니다. GPS 추적을 시작합니다.');
         showScreen('plogging-screen');
         
+        // 타이머 시작
         seconds = 0;
         timerInterval = setInterval(() => {
           seconds++;
@@ -212,11 +248,20 @@
           const s = String(seconds % 60).padStart(2, '0');
           document.getElementById('timer-display').innerText = `${m}:${s}`;
         }, 1000);
-      } else {
-        alert('인증되었습니다. 플로깅 기록이 저장되었습니다!');
+      } 
+      else if (currentCameraPhase === 'end_trash_selfie') {
+        alert('마대자루 인증 사진이 임시 저장되었습니다.\n마지막으로 청소 후 해변 사진을 촬영합니다.');
+        openCamera('end_location'); // 다음 단계로 이동
+      } 
+      else if (currentCameraPhase === 'end_location') {
+        closeCamera();
+        alert('모든 인증이 성공적으로 완료되었습니다! 플로깅 기록이 저장되었습니다.');
+        
+        // 타이머 종료 및 초기화
         clearInterval(timerInterval);
         document.getElementById('timer-display').innerText = '00:00';
         
+        // 횟수 증가 및 대시보드로 이동
         activityCount++;
         document.getElementById('activity-count').innerText = `총 ${activityCount}회`;
         
@@ -228,7 +273,8 @@
     document.getElementById('cancel-camera-btn').addEventListener('click', (e) => {
       e.preventDefault();
       closeCamera();
-      if (currentCameraPhase === 'start') {
+      // 시작 단계에서 취소하면 대시보드로, 종료 단계에서 취소하면 플로깅 화면으로
+      if (currentCameraPhase.startsWith('start')) {
         showScreen('dashboard-screen');
       } else {
         showScreen('plogging-screen');
